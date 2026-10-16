@@ -54,6 +54,7 @@ th{font-weight:800;background:color-mix(in srgb,var(--ac) 12%,var(--card))}
 .hd{background:linear-gradient(135deg,#9a3412,#ea580c);color:#fff}
 .gear{color:#fff;border-color:rgba(255,255,255,.55)}
 .c0{border-top-color:#f59e0b}.c1{border-top-color:#ea580c}.c2{border-top-color:#be123c}.c3{border-top-color:#4d7c0f}.c4{border-top-color:#92400e}
+.tk{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--bd);font-size:14px}.card .tk input{width:20px;height:20px;flex:none}.tk.done span{text-decoration:line-through;opacity:.5}.pb{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pb button{padding:4px 12px}
 </style>
 </head>
 <body>
@@ -65,7 +66,7 @@ th{font-weight:800;background:color-mix(in srgb,var(--ac) 12%,var(--card))}
 <h2>Settings <button id="gx" class="b o" style="float:right;padding:3px 10px">✕ Band karo</button></h2>
 <label>Cycle ka Din 1 kis tareekh se (abhi tak yahi se count hoga)</label><input type="date" id="st">
 <label>Faimi (maid) ka WhatsApp number (10 digit, optional)</label><input type="tel" id="ph" placeholder="98xxxxxxxx"><label>Supushpa (papa) ka WhatsApp number (saaman list ke liye)</label><input type="tel" id="pp" placeholder="98xxxxxxxx"><label>Rashmi (mummy) ka WhatsApp number</label><input type="tel" id="pm" placeholder="98xxxxxxxx">
-<label>Saaman kitne din pehle chahiye</label><select id="ld"><option value="1">1 din pehle</option><option value="2">2 din pehle</option></select>
+<label>Saaman kitne din pehle chahiye</label><select id="ld"><option value="1">1 din pehle</option><option value="2">2 din pehle</option></select><label>Ghar mein roz kitne log khana khate hain</label><input type="number" id="bs" min="1" max="20" value="2"><label>Calendar reminders</label><button class="b" id="ics" style="width:100%">📅 21 din ke reminders ki file (.ics) download karo</button><div class="mut" style="margin-top:6px">Download hone ke baad file kholo ya Google Calendar mein Import karo. Roz raat 9 baje "kal ka menu + saaman" ka reminder aayega, aur bhigone wale din 🔔 alag se. Menu badla ho toh file dobara bana lo.</div>
 </div>
 </main>
 <script>
@@ -145,42 +146,64 @@ const P=i=>{i=((i%N)+N)%N;const d=D[i],n=B[d[0]];return Object.assign({i,n:n[0],
 const link=(t,num)=>"https://wa.me/"+(num?"91"+num.replace(/\D/g,"").slice(-10):"")+"?text="+encodeURIComponent(t);
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const Q={aata:[250,'g'],aloo:[250,'g'],pyaz:[200,'g'],'hari mirch':[20,'g'],dahi:[250,'g'],poha:[150,'g'],moongfali:[30,'g'],nimbu:[1,'pcs'],'idli batter':[500,'g'],'toor dal':[50,'g'],'sambhar masala':[10,'g'],sabziyan:[200,'g'],suji:[100,'g'],'curry patta':[10,'g'],besan:[150,'g'],palak:[250,'g'],'chai patti':[10,'g'],paneer:[200,'g'],'dosa batter':[500,'g'],nariyal:[100,'g'],sattu:[100,'g'],ajwain:[5,'g'],'ready vada batter':[400,'g'],'palak/methi':[250,'g'],gobhi:[400,'g'],tamatar:[250,'g'],tel:[50,'ml'],bread:[6,'pcs'],'aloo/paneer':[150,'g'],chutney:[100,'g'],'ready kachori/filling':[6,'pcs'],'arhar dal':[100,'g'],bhindi:[250,'g'],lehsun:[20,'g'],rajma:[100,'g'],chawal:[150,'g'],'adrak-lehsun':[30,'g'],matar:[200,'g'],lauki:[400,'g'],'kabuli chana':[150,'g'],maida:[150,'g'],'chole masala':[15,'g'],makkhan:[50,'g'],kaju:[30,'g'],cream:[100,'ml'],doodh:[400,'ml'],cheeni:[50,'g'],'dry fruits':[30,'g'],'urad dal':[100,'g'],baingan:[400,'g'],lobia:[100,'g'],'sabut urad':[100,'g'],jeera:[10,'g'],'kala/kabuli chana':[150,'g'],parwal:[300,'g'],kathal:[400,'g'],masala:[20,'g'],tori:[300,'g'],'hari matar':[250,'g'],seviyan:[100,'g'],sarson:[500,'g'],bathua:[200,'g'],'makke ka aata':[250,'g'],gur:[30,'g']};
-const fmt=(n,u)=>u==='g'&&n>=1000?+(n/1000).toFixed(1)+' kg':u==='ml'&&n>=1000?+(n/1000).toFixed(1)+' L':n+' '+u;
-const qty=s=>{const m=new Map();s.split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{const e=m.get(x)||{n:0,u:null};if(Q[x]){e.n+=Q[x][0];e.u=Q[x][1]}m.set(x,e)});return [...m].map(([k,e])=>e.u?k+' – '+fmt(e.n,e.u):k)};
+const fmt=(n,u)=>{n=u==='pcs'?Math.ceil(n):Math.round(n/5)*5;return u==='g'&&n>=1000?+(n/1000).toFixed(1)+' kg':u==='ml'&&n>=1000?+(n/1000).toFixed(1)+' L':n+' '+u};
+const qty=(s,mu=1)=>{const m=new Map();s.split(',').map(x=>x.trim()).filter(Boolean).forEach(x=>{const e=m.get(x)||{n:0,u:null};if(Q[x]){e.n+=Q[x][0]*mu;e.u=Q[x][1]}m.set(x,e)});return [...m].map(([k,e])=>e.u?k+' – '+fmt(e.n,e.u):k)};
 const chipsL=a=>'<div class="chips">'+a.map(x=>'<span class="chip">'+x+'</span>').join('')+'</div>';
+const dOf=i=>{const d=mid(new Date());d.setDate(d.getDate()+(((i-todayIdx())%N+N)%N));return iso(d)};
+const ppl=i=>+((S.gc||{})[dOf(i)]||S.base||2);
+const isOff=i=>!!((S.off||{})[dOf(i)]);
+const isTk=k=>{const v=(S.tk||{})[k];return !!v&&(mid(new Date())-mid(v+'T00:00:00'))/864e5<=3};
+const tkList=q=>qty(q.ni+', '+q.mi,ppl(q.i)/2).map(x=>{const k=q.i+'|'+x.split(' \u2013 ')[0],on=isTk(k);return '<label class="tk'+(on?' done':'')+'"><input type="checkbox" data-k="'+esc(k)+'"'+(on?' checked':'')+'><span>'+x+'</span></label>'}).join('');
+const offCard=()=>'<div class="card" style="border:2px solid #dc2626;background:color-mix(in srgb,#dc2626 10%,var(--card))"><b>\ud83d\udeab Faimi aaj nahi aayi. Aasan options:</b><div class="chips">'+BK.map(b=>'<span class="chip">'+b[0]+' \u00b7 ~'+b[1]+' min</span>').join('')+'</div></div>';
+const mkIcs=()=>{
+ const pad=n=>String(n).padStart(2,'0'),fd=d=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+ const e2=t=>String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+ const strip=t=>t.replace(/\s*\([^)]*\)/g,'');
+ const st=new Date(S.start+'T00:00:00'),now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+ const o=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//kyakhaoge//EN','CALSCALE:GREGORIAN','BEGIN:VTIMEZONE','TZID:Asia/Kolkata','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0530','TZOFFSETTO:+0530','TZNAME:IST','END:STANDARD','END:VTIMEZONE'];
+ for(let i=0;i<N;i++){
+  const p=P(i),d=new Date(st);d.setDate(d.getDate()+i-1);
+  const soak=/bhigona/i.test(p.n+' '+p.m),note=(p.m.match(/\(([^)]*)\)/)||p.n.match(/\(([^)]*)\)/)||['',''])[1];
+  const title=(soak?'\ud83d\udd14 Bhigona! ':'')+'Kal (Din '+(i+1)+'): '+strip(p.n)+' + '+strip(p.m);
+  const desc=(soak?'Raat ko bhigona hai: '+note+'\n':'')+'Saaman: '+qty(p.ni+', '+p.mi,(S.base||2)/2).join(', ');
+  o.push('BEGIN:VEVENT','UID:kyakhaoge-din'+(i+1)+'@kyakhaoge','DTSTAMP:'+now,'DTSTART;TZID=Asia/Kolkata:'+fd(d)+'T210000','DTEND;TZID=Asia/Kolkata:'+fd(d)+'T211500','RRULE:FREQ=DAILY;INTERVAL='+N,'SUMMARY:'+e2(title),'DESCRIPTION:'+e2(desc),'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e2(title),'TRIGGER:PT0M','END:VALARM','END:VEVENT');
+ }
+ o.push('END:VCALENDAR');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([o.join('\r\n')],{type:'text/calendar'}));a.download='kyakhaoge-reminders.ics';document.body.appendChild(a);a.click();a.remove();
+};
 const cal=()=>{const d=iso(new Date()).replace(/-/g,'');return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('kyakhaoge.ak: kal ka menu dekho, bhigona ho toh bhigo do')+'&dates='+d+'T210000/'+d+'T211500&ctz=Asia/Kolkata&recur='+encodeURIComponent('RRULE:FREQ=DAILY')+'&details='+encodeURIComponent(location.href)};
 const chips=s=>'<div class="chips">'+s.split(",").map(x=>'<span class="chip">'+x.trim()+'</span>').join("")+'</div>';
 const bl=s=>s.replace(/\s*\([^)]*\)/g,"").split(/,|\+/).map(x=>"• "+x.trim()).join("\n");
 function msgs(p,isToday){
  const w=isToday?"aaj":"Din "+(p.i+1)+" ko";
  return{
-  maid:(w==="aaj"?"Aaj":w.replace(" ko",""))+" ke liye kripya ye bana dijiyega:\n\nNashta:\n"+bl(p.n)+"\n\nKhana:\n"+bl(p.m)+"\n\nBahut dhanyavaad 🙏",
-  fam:"🍽️ "+(isToday?"Aaj":"Din "+(p.i+1))+" ka menu\nNashta: "+p.n+" (~"+p.nt+" min)\nKhana: "+p.m+" (~"+p.mt+" min)"};
+  maid:(w==="aaj"?"Aaj":w.replace(" ko",""))+" ke liye kripya ye bana dijiyega"+(ppl(p.i)!==2?" ("+ppl(p.i)+" log hain)":"")+":\n\nNashta:\n"+bl(p.n)+"\n\nKhana:\n"+bl(p.m)+"\n\nBahut dhanyavaad 🙏",
+  fam:"🍽️ "+(isToday?"Aaj":"Din "+(p.i+1))+" ka menu\nNashta: "+p.n+" (~"+p.nt+" min)\nKhana: "+p.m+" (~"+p.mt+" min)"+(isOff(p.i)?"\n⚠️ Faimi aaj nahi aayi, aasan khana ya bahar se order":"")+(ppl(p.i)!==2?"\n👥 "+ppl(p.i)+" log":"")};
 }
 function render(){
  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
  const v=$("#v");
  if(tab==="aaj"){
-  const t=todayIdx(),p=P(sel),isT=sel===t,m=msgs(p,isT),L=+S.ld,q1=P(p.i+1),bn=/bhigona/i.test(q1.m)?'<div class="card" style="border:2px solid #f59e0b;background:color-mix(in srgb,#f59e0b 14%,var(--card))">🔔 '+(isT?'Aaj raat':'Din '+(p.i+1)+' ki raat')+' bhigona hai: '+esc(q1.m)+' (Din '+(q1.i+1)+') ke liye</div>':'';
+  const t=todayIdx(),p=P(sel),isT=sel===t,m=msgs(p,isT),L=+S.ld,off=isOff(p.i),offc=off?offCard():'',q1=P(p.i+1),bn=/bhigona/i.test(q1.m)?'<div class="card" style="border:2px solid #f59e0b;background:color-mix(in srgb,#f59e0b 14%,var(--card))">🔔 '+(isT?'Aaj raat':'Din '+(p.i+1)+' ki raat')+' bhigona hai: '+esc(q1.m)+' (Din '+(q1.i+1)+') ke liye</div>':'';
   let g="";
-  for(let k=1;k<=L;k++){const q=P(p.i+k);g+='<div class="mut" style="margin-top:8px">Din '+(q.i+1)+': '+q.n+' · '+q.m+'</div>'+chipsL(qty(q.ni+", "+q.mi))}
-  const gm="Papa 🛒 aaj ye saaman le aana:\n"+Array.from({length:L},(_,k)=>{const q=P(p.i+k+1);return "Din "+(q.i+1)+" ("+q.m+"): "+qty(q.ni+", "+q.mi).join(", ")}).join("\n");
+  for(let k=1;k<=L;k++){const q=P(p.i+k);g+='<div class="mut" style="margin-top:8px">Din '+(q.i+1)+': '+q.n+' · '+q.m+'</div>'+tkList(q)}
+  const gm="Papa 🛒 aaj ye saaman le aana:\n"+Array.from({length:L},(_,k)=>{const q=P(p.i+k+1);return "Din "+(q.i+1)+" ("+q.m+"): "+qty(q.ni+", "+q.mi,ppl(q.i)/2).join(", ")}).join("\n");
   v.innerHTML='<div class="nav"><button id="pv">←</button><b>'+(isT?"Aaj · ":"")+'Din '+(p.i+1)+' / '+N+'</b><button id="nx">→</button></div>'+bn+
   '<div class="card c0"><div class="big">'+p.n+'</div>'+chips(p.ni)+
   '<div class="big" style="margin-top:14px">'+p.m+'</div>'+chips(p.mi)+
   '<div class="mut" style="margin-top:10px">Faimi ka total time: lagbhag '+(p.nt+p.mt)+' min (Faimi ke paas 90 min hain)</div>'+(p.nt+p.mt>90?'<div style="margin-top:6px;color:#d97706;font-weight:700">⚠️ 90 min se zyada ho gaya, edit tab mein kuch halka kar lo</div>':'')+'</div>'+
-  '<div class="g4"><div class="card c1"><h2>Send Faimi</h2><div class="mut" style="white-space:pre-line">'+m.maid+'</div><div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(m.maid,S.ph)+'">WhatsApp pe bhejo</a><button class="b o" data-c="'+encodeURIComponent(m.maid)+'">Copy</button></div></div>'+
+  '<div class="card pb">👥 <b>Din '+(p.i+1)+': kitne log khayenge?</b> <button class="b o" data-g="-1">−</button> <b>'+ppl(p.i)+'</b> <button class="b o" data-g="1">+</button> <button class="b o" data-off="1">'+(off?'↩️ Faimi aa gayi':'🚫 Faimi nahi aayi')+'</button></div>'+offc+'<div class="g4"><div class="card c1"><h2>Send Faimi</h2><div class="mut" style="white-space:pre-line">'+m.maid+'</div><div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(m.maid,S.ph)+'">WhatsApp pe bhejo</a><button class="b o" data-c="'+encodeURIComponent(m.maid)+'">Copy</button></div></div>'+
   '<div class="card c2"><h2>Update to everyone</h2><div class="mut" style="white-space:pre-line">'+m.fam+'</div><div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(m.fam,S.pm)+'">Mummy ko bhejo</a><a class="btn o" target="_blank" rel="noopener" href="'+link(m.fam)+'">Family group</a><button class="b o" data-c="'+encodeURIComponent(m.fam)+'">Copy</button></div></div>'+
-  '<div class="card c3"><h2>🛒 Supushpa ko batao: aaj laana hai ('+L+' din aage ka)</h2><div class="mut">Andaaza, 2 logon ke hisaab se</div>'+g+'<div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(gm,S.pp)+'">Supushpa ko bhejo</a><button class="b o" data-c="'+encodeURIComponent(gm)+'">Copy</button></div></div>'+
+  '<div class="card c3"><h2>🛒 Supushpa ko batao: aaj laana hai ('+L+' din aage ka)</h2><div class="mut">Andaaza, ghar ke logon ke hisaab se</div>'+g+'<div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(gm,S.pp)+'">Supushpa ko bhejo</a><button class="b o" data-c="'+encodeURIComponent(gm)+'">Copy</button></div></div>'+
   '<div class="card noprint c4"><h2>🔔 Phone pe reminder</h2><div class="mut">Roz raat 9 baje Google Calendar yaad dilayega: kal ka menu dekho aur bhigona ho toh bhigo do.</div><div class="row"><a class="btn" target="_blank" rel="noopener" href="'+cal()+'">Calendar mein lagao</a></div></div></div>'+(isT?'':'<button class="b o" id="td">Aaj pe wapas</button>');
   $("#pv").onclick=()=>{sel=(sel+N-1)%N;render()};$("#nx").onclick=()=>{sel=(sel+1)%N;render()};
   const td=$("#td");if(td)td.onclick=()=>{sel=todayIdx();render()};
  }else if(tab==='hafta'){
   const t=todayIdx(),all=[];
-  const rows=Array.from({length:7},(_,k)=>{const p=P(t+k),dt=new Date();dt.setDate(dt.getDate()+k);all.push(p.ni,p.mi);return '<tr><td>'+dt.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})+'</td><td>'+p.n+'</td><td>'+p.m+(/bhigona/i.test(p.m)?' 🔔':'')+'</td></tr>'}).join('');
+  const rows=Array.from({length:7},(_,k)=>{const p=P(t+k),dt=new Date();dt.setDate(dt.getDate()+k);for(let r=0;r<Math.max(1,Math.round(ppl(p.i)/2));r++)all.push(p.ni,p.mi);return '<tr><td>'+dt.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})+'</td><td>'+p.n+'</td><td>'+p.m+(/bhigona/i.test(p.m)?' 🔔':'')+'</td></tr>'}).join('');
   const items=qty(all.join(',')).join(', ');
   const gm='Papa 🛒 is hafte ka saaman:\n'+items;
-  v.innerHTML='<div class="card c0"><h2>Agle 7 din (Mummy ke liye)</h2><div class="scroll"><table><tr><th>Din</th><th>Nashta</th><th>Khana</th></tr>'+rows+'</table></div><div class="mut" style="margin-top:6px">🔔 = ek raat pehle bhigona hai</div></div><div class="card c3"><h2>🛒 Hafte ka poora saaman</h2><div class="mut">Andaaza, 2 logon ke hisaab se</div>'+chips(items)+'<div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(gm,S.pp)+'">Supushpa ko bhejo</a><button class="b o" data-c="'+encodeURIComponent(gm)+'">Copy</button></div></div>';
+  v.innerHTML='<div class="card c0"><h2>Agle 7 din (Mummy ke liye)</h2><div class="scroll"><table><tr><th>Din</th><th>Nashta</th><th>Khana</th></tr>'+rows+'</table></div><div class="mut" style="margin-top:6px">🔔 = ek raat pehle bhigona hai</div></div><div class="card c3"><h2>🛒 Hafte ka poora saaman</h2><div class="mut">Andaaza, ghar ke logon ke hisaab se</div>'+chips(items)+'<div class="row"><a class="btn" target="_blank" rel="noopener" href="'+link(gm,S.pp)+'">Supushpa ko bhejo</a><button class="b o" data-c="'+encodeURIComponent(gm)+'">Copy</button></div></div>';
  }else if(tab==='edit'){
   const p=P(sel);
   v.innerHTML='<div class="card"><h2>Menu edit karo (sirf is phone mein save hoga)</h2><label>Din</label><select id="ed">'+D.map((_,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>Din '+(i+1)+': '+esc(P(i).m)+'</option>').join('')+'</select><label>Nashta</label><input id="e1" value="'+esc(p.n)+'"><label>Nashta kitne min</label><input id="e2" type="number" value="'+p.nt+'"><label>Nashta ka saaman (comma se)</label><input id="e3" value="'+esc(p.ni)+'"><label>Lunch + Dinner</label><input id="e4" value="'+esc(p.m)+'"><label>Khana kitne min</label><input id="e5" type="number" value="'+p.mt+'"><label>Khane ka saaman (comma se)</label><input id="e6" value="'+esc(p.mi)+'"><div class="row"><button class="b" id="sv">Save</button><button class="b o" id="rs">Original wapas</button></div></div>';
@@ -195,16 +218,21 @@ function render(){
  }else{
   v.innerHTML='<div class="card"><h2>Maid na aaye toh (15-25 min wale)</h2><table>'+BK.map(b=>'<tr><td><b>'+b[0]+'</b></td><td>~'+b[1]+' min</td><td class="mut">'+b[2]+'</td></tr>').join("")+'</table></div>';
  }
+ document.querySelectorAll("[data-k]").forEach(b=>b.onchange=()=>{S.tk=S.tk||{};if(b.checked)S.tk[b.dataset.k]=iso(new Date());else delete S.tk[b.dataset.k];b.parentElement.classList.toggle("done",b.checked);save()});
+ document.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{S.gc=S.gc||{};S.gc[dOf(sel)]=Math.max(1,Math.min(20,ppl(sel)+(+b.dataset.g)));save();render()});
+ document.querySelectorAll("[data-off]").forEach(b=>b.onclick=()=>{S.off=S.off||{};const k=dOf(sel);if(S.off[k])delete S.off[k];else S.off[k]=1;save();render()});
  document.querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{
   const t=decodeURIComponent(b.dataset.c);
   try{await navigator.clipboard.writeText(t);b.textContent="Copy ho gaya ✓"}catch(e){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");b.textContent="Copy ho gaya ✓"}catch(x){b.textContent="Copy nahi hua"}a.remove()}
  });
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
-$("#st").value=S.start;$("#ph").value=S.ph;$("#pp").value=S.pp;$("#pm").value=S.pm;$("#ld").value=S.ld;
+$("#st").value=S.start;$("#ph").value=S.ph;$("#pp").value=S.pp;$("#pm").value=S.pm;$("#ld").value=S.ld;$("#bs").value=S.base||2;
 $("#st").onchange=e=>{if(e.target.value){S.start=e.target.value;save();sel=todayIdx();render()}};
 $("#ph").oninput=e=>{S.ph=e.target.value;save()};$("#pp").oninput=e=>{S.pp=e.target.value;save()};$("#pm").oninput=e=>{S.pm=e.target.value;save()};
 $("#ld").onchange=e=>{S.ld=e.target.value;save();render()};
+$("#bs").oninput=e=>{S.base=Math.max(1,Math.min(20,+e.target.value||2));save();render()};
+$("#ics").onclick=mkIcs;
 $("#gear").onclick=()=>$("#set").classList.add("on");
 $("#gx").onclick=()=>$("#set").classList.remove("on");
 sel=todayIdx();render();
